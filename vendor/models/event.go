@@ -1,17 +1,17 @@
 package models
 
-// Private visibility
-var test1 = "private variable"
+import (
+	"log"
+    "bytes"
+)
 
-// Public visibility
-var Test2 = "public variable"
+func CreateEventsBatch (events []byte, requestIP string) {
+    separator := []byte("\\n")
+    events_ := bytes.Split(events, separator)
 
-// Private visiblity
-func greet() string {
-	return "hello"
-}
+    for _, event := range events_ {
+        log.Println(string(event))
+    }
 
-// Public visibility
-func Greet2() string {
-	return "hello world"
+    log.Println(requestIP)
 }

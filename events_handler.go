@@ -5,23 +5,22 @@ import (
     "net"
 	"net/http"
 	"io/ioutil"
-    "log"
+    // "log"
     "models"
 )
 
 func eventsHandler(w http.ResponseWriter, request *http.Request) {
-    body, err := ioutil.ReadAll(request.Body)
+    events, err := ioutil.ReadAll(request.Body)
     if err != nil {
         panic(err)
     }
-    log.Println(string(body))
 
     requestIP, err := getIP(request)
     if err != nil {
         panic(err)
 	}
-    log.Println(requestIP)
-    log.Println(models.Greet2)
+
+    go models.CreateEventsBatch(events, requestIP)
 }
 
 func getIP(request *http.Request) (string, error) {
