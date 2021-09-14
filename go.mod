@@ -1,3 +1,7 @@
-module example.com/mod
+module saygames
 
 go 1.16
+
+require (
+	github.com/ClickHouse/clickhouse-go v1.4.7
+)

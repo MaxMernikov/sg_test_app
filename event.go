@@ -2,6 +2,9 @@ package main
 
 import (
 	"log"
+
+	_ "github.com/ClickHouse/clickhouse-go"
+	"github.com/jmoiron/sqlx"
 )
 
 type Event struct {
@@ -15,6 +18,7 @@ type Event struct {
 	paramStr 	string	`db:"param_str"`
 }
 
+
 // "client_time":"2020-12-01 23:59:00",
 // "device_id":"0287D9AA-4ADF-4B37-A60F-3E9E645C821E"
 // "device_os":"iOS 13.5.1",
@@ -23,6 +27,10 @@ type Event struct {
 // "event":"app_start",
 // "param_int":0,
 // "param_str":"some text"
+
+var (
+	connect, _ = sqlx.Open("clickhouse", "tcp://localhost:9000?username=&compress=true&database=saygames_test")
+)
 
 func CreateEventsBatch (events [][]byte, requestIP string) {
 	for _, event := range events {
