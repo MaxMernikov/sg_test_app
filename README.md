@@ -7,4 +7,3 @@ export GOOSE_DBSTRING=tcp://localhost:9000?username=&compress=true&database=sayg
 
 goose -dir ./migrations status
 goose -dir ./migrations up
-

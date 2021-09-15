@@ -5,37 +5,45 @@ import (
 
 	_ "github.com/ClickHouse/clickhouse-go"
 	"github.com/jmoiron/sqlx"
+	"encoding/json"
+	"time"
 )
 
 type Event struct {
-	clientTime 	string	`db:"client_time"` 	//
-	deviceId 	string 	`db:"device_id"`	// UUID
-	deviceOs 	string 	`db:"device_os"`
-	session		string	`db:"session"`
-	sequence  	int		`db:"sequence"`
-	event	 	string	`db:"event"`
-	paramInt 	int		`db:"param_int"`
-	paramStr 	string	`db:"param_str"`
+	Ip			string  	`db:"ip"`
+	ServerTime  time.Time  	`db:"server_time"`
+	ClientTime 	time.Time	`db:"client_time"`
+	DeviceId 	string 		`db:"device_id"`
+	DeviceOs 	string 		`db:"device_os"`
+	Session		string		`db:"session"`
+	Sequence  	int8		`db:"sequence"`
+	Event	 	string		`db:"event"`
+	ParamInt 	int8		`db:"param_int"`
+	ParamStr 	string		`db:"param_str"`
 }
-
-
-// "client_time":"2020-12-01 23:59:00",
-// "device_id":"0287D9AA-4ADF-4B37-A60F-3E9E645C821E"
-// "device_os":"iOS 13.5.1",
-// "session":"ybuRi8mAUypxjbxQ",
-// "sequence":1,
-// "event":"app_start",
-// "param_int":0,
-// "param_str":"some text"
 
 var (
 	connect, _ = sqlx.Open("clickhouse", "tcp://localhost:9000?username=&compress=true&database=saygames_test")
 )
 
 func CreateEventsBatch (events [][]byte, requestIP string) {
-	for _, event := range events {
-		log.Println(string(event))
+	for _, eventBytes := range events {
+		event := Event{}
+		json.Unmarshal(eventBytes, &event)
+
+		log.Println(string(eventBytes))
+		log.Println(event.Ip)
 	}
 
 	log.Println(requestIP)
+}
+
+func save (events []Event) {
+	var (
+		tx, _   = connect.Begin()
+		stmt, _ = tx.Prepare("INSERT INTO events (ip, server_time, client_time, device_id, device_os, session, sequence, event, param_int, param_str) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	)
+	defer stmt.Close()
+
+
 }
