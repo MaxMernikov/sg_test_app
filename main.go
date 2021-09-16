@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "log"
+	"log"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -44,4 +44,10 @@ func splitData(data []byte) [][]byte {
 func main() {
 	http.HandleFunc("/", eventsHandler)
 	http.ListenAndServe(":8090", nil)
+}
+
+func checkErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }
