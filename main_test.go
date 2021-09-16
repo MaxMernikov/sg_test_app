@@ -6,15 +6,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	// "bytes"
-	"time"
-	"strings"
+	"bytes"
 	"encoding/json"
-
-	"log"
+	"time"
 
 	faker "github.com/brianvoe/gofakeit/v6"
 )
+
+const EventsCount = 30
 
 type TestEvent struct {
 	ClientTime	Timestamp	`json:"client_time"`
@@ -28,23 +27,7 @@ type TestEvent struct {
 }
 
 func TestEventsHandler(t *testing.T) {
-	clientTime := Timestamp { faker.DateRange(time.Now().Add(-24*time.Hour), time.Now()) }
-
-	event := TestEvent{
-		ClientTime: clientTime,
-		DeviceId: faker.UUID(),
-		DeviceOs: "iOS 13.5.1",
-		Session: faker.LetterN(16),
-		Sequence: 1,
-		Event: faker.RandomString([]string{"app_start", "app_stop"}),
-		ParamInt: faker.Int8(),
-		ParamStr: faker.HipsterSentence(2),
-	}
-
-	eventJson, _ := json.Marshal(event)
-	r := strings.NewReader(string(eventJson))
-
-	log.Println(string(eventJson))
+	r := bytes.NewReader(requestBytes())
 
 	req := httptest.NewRequest(http.MethodPost, "/foo", r)
 	w := httptest.NewRecorder()
@@ -58,5 +41,34 @@ func TestEventsHandler(t *testing.T) {
 	}
 	if string(data) != "{\"status\": \"ok\"}" {
 		t.Errorf("expected status ok got %v", string(data))
+	}
+}
+
+func requestBytes() []byte{
+	eventsJson := [][]byte{}
+	joinChar := []byte("\\n")
+
+	sum := 0
+	for i := 0; i < EventsCount; i++ {
+		eventJson, _ := json.Marshal(buildTestEvent())
+		eventsJson = append(eventsJson, eventJson)
+		sum += i
+	}
+
+	return bytes.Join(eventsJson, joinChar)
+}
+
+func buildTestEvent() TestEvent {
+	clientTime := Timestamp { faker.DateRange(time.Now().Add(-24*time.Hour), time.Now()) }
+
+	return TestEvent{
+		ClientTime: clientTime,
+		DeviceId: faker.UUID(),
+		DeviceOs: "iOS 13.5.1",
+		Session: faker.LetterN(16),
+		Sequence: 1,
+		Event: faker.RandomString([]string{"app_start", "app_stop"}),
+		ParamInt: faker.Int8(),
+		ParamStr: faker.HipsterSentence(2),
 	}
 }
