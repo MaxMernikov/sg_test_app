@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"log"
-
-
+	// "log"
 	// "reflect"
 )
 
@@ -25,13 +23,9 @@ type Event struct {
 	ParamStr 	string		`db:"param_str" json:"param_str"`
 }
 
-var (
-	connect, _ = sqlx.Open("clickhouse", "tcp://localhost:9000?username=&compress=true&database=saygames_test")
-)
-
-func CreateEventsBatch (eventsBytes [][]byte, requestIP string) {
+func BuildEvents(data []byte, requestIP string, serverTime time.Time) ([]Event, error) {
 	var events []Event
-	serverTime := time.Now()
+	eventsBytes := SplitRequestData(data)
 
 	for _, eventBytes := range eventsBytes {
 		event := Event{
@@ -40,29 +34,63 @@ func CreateEventsBatch (eventsBytes [][]byte, requestIP string) {
 		}
 
 		err := json.Unmarshal(eventBytes, &event)
-		checkErr(err)
+		CheckErr(err)
 
 		events = append(events, event)
 	}
 
-	save(events)
+	return events, nil
+}
+
+func BatchEvents(values <-chan Event, maxItems int, maxTimeout time.Duration) chan []Event {
+	batches := make(chan []Event)
+
+	go func() {
+		defer close(batches)
+
+		for keepGoing := true; keepGoing; {
+			var batch []Event
+			expire := time.After(maxTimeout)
+			for {
+				select {
+				case value, ok := <-values:
+					if !ok {
+						keepGoing = false
+						goto done
+					}
+
+					batch = append(batch, value)
+					if len(batch) == maxItems {
+						goto done
+					}
+
+				case <-expire:
+					goto done
+				}
+			}
+
+		done:
+			if len(batch) > 0 {
+				batches <- batch
+			}
+		}
+	}()
+
+	return batches
 }
 
 func save (events []Event) {
-	var (
-		tx, _   = connect.Beginx()
-		stmt, _ = tx.PrepareNamed("INSERT INTO events (ip, server_time, client_time, device_id, device_os, session, sequence, event, param_int, param_str) VALUES (:ip, :server_time, :client_time, :device_id, :device_os, :session, :sequence, :event, :param_int, :param_str)")
-	)
+	connect, _ := sqlx.Open("clickhouse", "tcp://localhost:9000?username=&compress=true&database=saygames_test")
+
+	tx, _   := connect.Beginx()
+	stmt, _ := tx.PrepareNamed("INSERT INTO events (ip, server_time, client_time, device_id, device_os, session, sequence, event, param_int, param_str) VALUES (:ip, :server_time, :client_time, :device_id, :device_os, :session, :sequence, :event, :param_int, :param_str)")
 	defer stmt.Close()
 
 	for _, event := range events {
 		_, err := stmt.Exec(event)
-		checkErr(err)
+		CheckErr(err)
 	}
 
 	err := tx.Commit()
-	checkErr(err)
-
-	// log.Println(events)
-
+	CheckErr(err)
 }

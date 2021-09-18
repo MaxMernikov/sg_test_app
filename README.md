@@ -7,3 +7,6 @@ export GOOSE_DBSTRING=tcp://localhost:9000?username=&compress=true&database=sayg
 
 goose -dir ./migrations status
 goose -dir ./migrations up
+
+
+ali --rate=1 --method=POST --duration=3s --body-file=./test_request.txt http://localhost:8090/test

@@ -11,6 +11,8 @@ import (
 	"time"
 
 	faker "github.com/brianvoe/gofakeit/v6"
+
+	// "log"
 )
 
 const EventsCount = 30
@@ -46,7 +48,7 @@ func TestEventsHandler(t *testing.T) {
 
 func requestBytes() []byte{
 	eventsJson := [][]byte{}
-	joinChar := []byte("\\n")
+	joinChar := []byte("\n")
 
 	sum := 0
 	for i := 0; i < EventsCount; i++ {
