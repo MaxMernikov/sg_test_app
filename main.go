@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"log"
+	_ "net/http/pprof"
 )
 
 const (
@@ -46,6 +47,6 @@ func eventsHandler(w http.ResponseWriter, request *http.Request) {
 
 func main() {
 	go BatchEventsManager()
-	http.HandleFunc("/", eventsHandler)
+	http.HandleFunc("/t", eventsHandler)
 	http.ListenAndServe(":8090", nil)
 }

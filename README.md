@@ -9,4 +9,12 @@ goose -dir ./migrations status
 goose -dir ./migrations up
 
 
-ali --rate=1 --method=POST --duration=3s --body-file=./test_request.txt http://localhost:8090/test
+ali --rate=1 --duration=1s --method=POST --body-file=./test_request.txt http://localhost:8090/
+
+go run .
+go tool pprof http://127.0.0.1:8090/debug/pprof/profile
+
+go test
+
+# DOCKER CLI
+docker run -it --rm --link some-clickhouse-server yandex/clickhouse-client --host some-clickhouse-server

@@ -81,6 +81,7 @@ func BatchEvents(values <-chan Event, maxItems int, maxTimeout time.Duration) ch
 
 func save (events []Event) {
 	connect, _ := sqlx.Open("clickhouse", "tcp://localhost:9000?username=&compress=true&database=saygames_test")
+	defer connect.Close()
 
 	tx, _   := connect.Beginx()
 	stmt, _ := tx.PrepareNamed("INSERT INTO events (ip, server_time, client_time, device_id, device_os, session, sequence, event, param_int, param_str) VALUES (:ip, :server_time, :client_time, :device_id, :device_os, :session, :sequence, :event, :param_int, :param_str)")
