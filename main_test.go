@@ -11,8 +11,6 @@ import (
 	"time"
 
 	faker "github.com/brianvoe/gofakeit/v6"
-
-	// "log"
 )
 
 const EventsCount = 30

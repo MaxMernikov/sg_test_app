@@ -6,8 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	// "log"
-	// "reflect"
+	"log"
 )
 
 type Event struct {
@@ -34,7 +33,9 @@ func BuildEvents(data []byte, requestIP string, serverTime time.Time) ([]Event, 
 		}
 
 		err := json.Unmarshal(eventBytes, &event)
-		CheckErr(err)
+		if err != nil {
+			return nil, err
+		}
 
 		events = append(events, event)
 	}
@@ -50,6 +51,7 @@ func BatchEvents(values <-chan Event, maxItems int, maxTimeout time.Duration) ch
 
 		for keepGoing := true; keepGoing; {
 			var batch []Event
+
 			expire := time.After(maxTimeout)
 			for {
 				select {
@@ -80,18 +82,24 @@ func BatchEvents(values <-chan Event, maxItems int, maxTimeout time.Duration) ch
 }
 
 func save (events []Event) {
-	connect, _ := sqlx.Open("clickhouse", "tcp://localhost:9000?username=&compress=true&database=saygames_test")
+	connect, _ := sqlx.Open("clickhouse", "tcp://localhost:9000?username=&compress=true&database=saygames_db")
 	defer connect.Close()
 
-	tx, _   := connect.Beginx()
-	stmt, _ := tx.PrepareNamed("INSERT INTO events (ip, server_time, client_time, device_id, device_os, session, sequence, event, param_int, param_str) VALUES (:ip, :server_time, :client_time, :device_id, :device_os, :session, :sequence, :event, :param_int, :param_str)")
+	tx, err   := connect.Beginx()
+	if err != nil {
+		// TODO: dump events
+		log.Println(err)
+	}
+
+	stmt, err := tx.PrepareNamed("INSERT INTO events (ip, server_time, client_time, device_id, device_os, session, sequence, event, param_int, param_str) VALUES (:ip, :server_time, :client_time, :device_id, :device_os, :session, :sequence, :event, :param_int, :param_str)")
 	defer stmt.Close()
+	LogError(err)
 
 	for _, event := range events {
 		_, err := stmt.Exec(event)
-		CheckErr(err)
+		LogError(err)
 	}
 
-	err := tx.Commit()
-	CheckErr(err)
+	err = tx.Commit()
+	LogError(err)
 }

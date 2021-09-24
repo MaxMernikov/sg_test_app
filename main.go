@@ -15,38 +15,61 @@ const (
 	BatchMaxTimeout = 1 * time.Second
 )
 
-var eventsChannel = make(chan Event, ClickhouseInsertBatchSize)
+var (
+	eventsChannel = make(chan Event, ClickhouseInsertBatchSize)
+)
+
+func init() {
+	go BatchEventsManager()
+}
+
+func main() {
+	http.HandleFunc("/", eventsHandler)
+	http.ListenAndServe(":8090", nil)
+}
 
 func BatchEventsManager() {
 	batches := BatchEvents(eventsChannel, BatchMaxItems, BatchMaxTimeout)
 	for batch := range batches {
-		log.Println("save", len(batch))
 		save(batch)
 	}
 }
 
 func eventsHandler(w http.ResponseWriter, request *http.Request) {
-	data, err := ioutil.ReadAll(request.Body)
-	CheckErr(err)
+	defer request.Body.Close()
 
-	requestIP, err := GetIP(request)
-	CheckErr(err)
+	if request.Method == "POST" {
+		data, err := ioutil.ReadAll(request.Body)
+		if err != nil {
+			log.Println(err)
+			render400(&w)
 
-	events, err := BuildEvents(data, requestIP, time.Now())
-	CheckErr(err)
+			return
+		}
 
-	for _, event := range events {
-		eventsChannel <- event
+		requestIP, err := GetIP(request)
+		if err != nil {
+			log.Println(err)
+		}
+
+		events, err := BuildEvents(data, requestIP, time.Now())
+
+		if err != nil {
+			log.Println(err, "request:", string(data))
+			render400(&w)
+
+			return
+		}
+
+		for _, event := range events {
+			eventsChannel <- event
+		}
 	}
 
-	events = nil
-
 	w.Write([]byte(`{"status": "ok"}`))
-	request.Header.Set("Connection", "close")
 }
 
-func main() {
-	go BatchEventsManager()
-	http.HandleFunc("/t", eventsHandler)
-	http.ListenAndServe(":8090", nil)
+func render400(w *http.ResponseWriter) {
+	(*w).WriteHeader(http.StatusBadRequest)
+	(*w).Write([]byte(`{"status": "fail", "message": "Invalid request parameters"}`))
 }

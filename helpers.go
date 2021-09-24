@@ -12,9 +12,9 @@ func SplitRequestData(data []byte) [][]byte {
 	return bytes.Split(data, separator)
 }
 
-func CheckErr(err error) {
+func LogError(err error) {
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 }
 
@@ -30,6 +30,7 @@ func GetIP(request *http.Request) (string, error) {
 	if ip == "::1" {
 		return "127.0.0.1", nil
 	}
+
 	if netIP != nil {
 		return ip, nil
 	}
